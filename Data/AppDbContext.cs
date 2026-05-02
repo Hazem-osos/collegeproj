@@ -12,10 +12,28 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Explicit 1:1 config
+        // 1:1 — Instructor -> InstructorProfile
         modelBuilder.Entity<Instructor>()
             .HasOne(i => i.Profile)
             .WithOne(p => p.Instructor)
             .HasForeignKey<InstructorProfile>(p => p.InstructorId);
+
+        // String lengths (align with Prisma / MySQL schema)
+        modelBuilder.Entity<Instructor>()
+            .Property(i => i.Email).HasMaxLength(255);
+        modelBuilder.Entity<Instructor>()
+            .Property(i => i.FullName).HasMaxLength(255);
+        modelBuilder.Entity<Student>()
+            .Property(s => s.Email).HasMaxLength(255);
+        modelBuilder.Entity<Student>()
+            .Property(s => s.FullName).HasMaxLength(255);
+        modelBuilder.Entity<Course>()
+            .Property(c => c.Title).HasMaxLength(255);
+        modelBuilder.Entity<InstructorProfile>()
+            .Property(p => p.Bio).HasMaxLength(1000);
+        modelBuilder.Entity<InstructorProfile>()
+            .Property(p => p.OfficeLocation).HasMaxLength(255);
+        modelBuilder.Entity<Enrollment>()
+            .Property(e => e.Grade).HasMaxLength(10);
     }
 }

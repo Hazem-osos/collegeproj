@@ -1,0 +1,77 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// Application login users (JWT session cookie issued on login/register).
+model User {
+  id           Int    @id @default(autoincrement()) @map("Id")
+  email        String @unique @map("Email") @db.VarChar(255)
+  passwordHash String @map("PasswordHash") @db.VarChar(255)
+  role         String @default("Student") @map("Role") @db.VarChar(32)
+
+  @@map("Users")
+}
+
+model Instructor {
+  id        Int     @id @default(autoincrement()) @map("Id")
+  fullName  String  @map("FullName") @db.VarChar(255)
+  email     String  @map("Email") @db.VarChar(255)
+  profile   InstructorProfile?
+  courses   Course[]
+
+  @@map("Instructors")
+}
+
+
+model InstructorProfile {
+  id             Int        @id @default(autoincrement()) @map("Id")
+  bio            String     @map("Bio") @db.VarChar(1000)
+  officeLocation String     @map("OfficeLocation") @db.VarChar(255)
+  instructorId   Int        @unique @map("InstructorId")
+  instructor     Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+
+  @@map("InstructorProfiles")
+}
+
+
+model Course {
+  id           Int     @id @default(autoincrement()) @map("Id")
+  title        String  @map("Title") @db.VarChar(255)
+  credits      Int     @map("Credits")
+  instructorId Int     @map("InstructorId")
+  instructor   Instructor   @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  enrollments  Enrollment[]
+
+  @@index([instructorId], map: "IX_Courses_InstructorId")
+  @@map("Courses")
+}
+
+model Student {
+  id          Int     @id @default(autoincrement()) @map("Id")
+  fullName    String  @map("FullName") @db.VarChar(255)
+  email       String  @map("Email") @db.VarChar(255)
+  enrollments Enrollment[]
+
+  @@map("Students")
+}
+
+
+model Enrollment {
+  id         Int      @id @default(autoincrement()) @map("Id")
+  enrolledAt DateTime @map("EnrolledAt")
+  grade      String?  @map("Grade") @db.VarChar(10)
+  studentId  Int      @map("StudentId")
+  courseId   Int      @map("CourseId")
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId], map: "IX_Enrollments_CourseId")
+  @@index([studentId], map: "IX_Enrollments_StudentId")
+  @@map("Enrollments")
+}

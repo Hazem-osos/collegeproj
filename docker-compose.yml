@@ -1,0 +1,19 @@
+# Optional local MySQL (matches `web/.env.example` when using root / devpassword).
+# Run: docker compose up -d
+# Then: cd web && npm install && npm run setup:dev
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: coursemanagement-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: devpassword
+      MYSQL_DATABASE: coursemanagement
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pdevpassword"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

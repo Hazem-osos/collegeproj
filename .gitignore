@@ -1,0 +1,20 @@
+# Build
+bin/
+obj/
+
+# Local SQLite (legacy) — not used; schema is Prisma + MySQL
+*.db
+*.db-shm
+*.db-wal
+
+# Environment
+.env
+web/.env
+
+# OS
+.DS_Store
+
+# Next.js
+web/.next/
+web/node_modules/
+web/out/
