@@ -113,13 +113,15 @@ Further detail for demos or grading: `web/TUTOR_PROJECT_DISCUSSION.md`.
 
 ## Legacy ASP.NET API
 
-If you still use it:
+The root **CourseManagementAPI** project is optional. Typical flow:
 
-1. `DATABASE_URL` / MySQL must match the schema Prisma created (tables `Instructors`, `Courses`, etc.).
-2. From repo root: `dotnet restore` → `dotnet run`  
-3. Typical URL: **`http://localhost:5007`** (see your launch profile).
+1. Prefer **Prisma/MySQL** for schema; legacy EF migrations may not match unless you align them explicitly.
+2. From repo root: `dotnet restore` → `dotnet run`
+3. HTTP: **`http://localhost:5007`** (see launch settings).
 
-Swagger / JWT flow on .NET differs from the Next cookie flow; coursework deliverable assumes the **`web`** app unless your brief says otherwise.
+Swagger on .NET exposes `/api/Auth/login` Bearer JWT; behavior differs from the Next.js cookie session.
+
+Classic assignment-style notes (Bearer token, SQLite in older forks, Admin-only mutations) apply only when you serve that stack instead of **`web/`**.
 
 ---
 
