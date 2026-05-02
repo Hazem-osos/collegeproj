@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAdminDb, requireAuth } from "@/lib/api-helpers";
 
 const createSchema = z.object({
   fullName: z.string().min(1).max(100),
@@ -11,6 +11,8 @@ const createSchema = z.object({
 export async function GET(request: Request) {
   const auth = await requireAuth(request);
   if ("response" in auth) return auth.response;
+  const forbid = await requireAdminDb(auth.user);
+  if (forbid) return forbid;
 
   const rows = await prisma.instructor.findMany({
     select: { id: true, fullName: true, email: true },
@@ -21,6 +23,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const auth = await requireAuth(request);
   if ("response" in auth) return auth.response;
+  const forbid = await requireAdminDb(auth.user);
+  if (forbid) return forbid;
 
   let body: unknown;
   try {

@@ -10,10 +10,12 @@ datasource db {
 
 /// Application login users (JWT session cookie issued on login/register).
 model User {
-  id           Int    @id @default(autoincrement()) @map("Id")
-  email        String @unique @map("Email") @db.VarChar(255)
-  passwordHash String @map("PasswordHash") @db.VarChar(255)
-  role         String @default("Student") @map("Role") @db.VarChar(32)
+  id           Int      @id @default(autoincrement()) @map("Id")
+  email        String   @unique @map("Email") @db.VarChar(255)
+  passwordHash String   @map("PasswordHash") @db.VarChar(255)
+  role         String   @default("Student") @map("Role") @db.VarChar(32)
+  studentId    Int?     @unique @map("StudentId")
+  student      Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
   @@map("Users")
 }
@@ -57,6 +59,7 @@ model Student {
   fullName    String  @map("FullName") @db.VarChar(255)
   email       String  @map("Email") @db.VarChar(255)
   enrollments Enrollment[]
+  user        User?
 
   @@map("Students")
 }

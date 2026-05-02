@@ -4,13 +4,15 @@ import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import type { AuthUser } from "@/context/AuthContext";
+import { postLoginRedirectPath } from "@/lib/auth-redirects";
 import { api, getAxiosErrorMessage } from "@/lib/axios-instance";
 
 function LoginForm() {
   const { setUserFromAuthResponse, user, isReady } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/";
+  const nextParam = searchParams.get("next");
 
   const [email, setEmail] = useState("admin@uni.com");
   const [password, setPassword] = useState("");
@@ -19,21 +21,18 @@ function LoginForm() {
 
   useEffect(() => {
     if (isReady && user) {
-      router.replace(next.startsWith("/") ? next : "/");
+      router.replace(postLoginRedirectPath(user.role, nextParam));
     }
-  }, [isReady, user, router, next]);
+  }, [isReady, user, router, nextParam]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setLoading(true);
     try {
-      const { data } = await api.post<{ user: { email: string; role: string } }>(
-        "/api/auth/login",
-        { email, password },
-      );
+      const { data } = await api.post<{ user: AuthUser }>("/api/auth/login", { email, password });
       setUserFromAuthResponse(data.user);
-      router.replace(next.startsWith("/") ? next : "/");
+      router.replace(postLoginRedirectPath(data.user.role, nextParam));
     } catch (e) {
       setErr(getAxiosErrorMessage(e));
     } finally {

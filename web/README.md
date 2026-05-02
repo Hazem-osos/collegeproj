@@ -1,26 +1,27 @@
 # Course Management — Next.js app
 
-Everything needed to **run**, **migrate**, and **build** lives here end-to-end.
+End-to-end UI + `/api` + Prisma + MySQL.
 
 ## First-time setup
 
-1. Copy env: **`cp .env.example .env`**
-2. Ensure MySQL is running (repo root: **`docker compose up -d`** if you use the bundled compose file).
-3. **`npm install`** (runs **`postinstall` → `prisma generate`**).
-4. Sync DB + seed (pick one):
-   - **`npm run setup:dev`** — `db push` + seed (fastest for a new local DB)
-   - **`npm run db:deploy`** then **`npm run db:seed`** — uses migration history (better for teams/CI)
-5. **`npm run dev`** → [http://localhost:3000](http://localhost:3000)
+1. **`cp .env.example .env`**
+2. MySQL: from repo root **`docker compose up -d`** (or your own instance).
+3. **`npm install`** (runs **`prisma generate`** via `postinstall`).
+4. Sync DB + seed:
+   - **`npm run setup:dev`** — push schema + seed (quickest), or  
+   - **`npm run db:deploy`** then **`npm run db:seed`** — migrations.
+5. **`npm run dev`** → http://localhost:3000
 
-## Scripts (see `package.json`)
+## Roles
 
-- **`npm run dev`** — development server  
-- **`npm run build`** / **`npm start`** — production  
-- **`npm run lint`** — ESLint  
-- **`npm run setup:dev`** — fresh schema + seed  
-- **`npm run db:push`** / **`db:migrate`** / **`db:deploy`** / **`db:seed`** — Prisma  
+- **Admin** — dashboard + all CRUD pages; enroll students into courses.
+- **Student** — register (creates **`Students`** + linked **`Users`**); **`/my-courses`** + **`/settings`** only.
+
+## Scripts
+
+`dev`, `build`, `start`, `lint`, `setup:dev`, `db:push`, `db:migrate`, `db:deploy`, `db:seed`, `db:generate` — see **`package.json`**.
 
 ## Docs
 
-- Full repo instructions: **[../README.md](../README.md)**  
-- Tutor / assignment walkthrough: **`TUTOR_PROJECT_DISCUSSION.md`**
+- **[../README.md](../README.md)** — full repo guide  
+- **`TUTOR_PROJECT_DISCUSSION.md`** — assignment / tutor walk-through

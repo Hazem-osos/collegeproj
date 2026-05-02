@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { AppShell } from "./AppShell";
+import { StudentShell } from "./StudentShell";
 
 function Loading() {
   return (
@@ -13,7 +13,7 @@ function Loading() {
   );
 }
 
-export function AuthedLayout({ children }: { children: React.ReactNode }) {
+export function StudentAuthedLayout({ children }: { children: React.ReactNode }) {
   const { user, isReady } = useAuth();
   const router = useRouter();
 
@@ -22,14 +22,12 @@ export function AuthedLayout({ children }: { children: React.ReactNode }) {
   }, [isReady, user, router]);
 
   useEffect(() => {
-    if (isReady && user?.role === "Student") {
-      router.replace("/my-courses");
-    }
+    if (isReady && user?.role === "Admin") router.replace("/");
   }, [isReady, user, router]);
 
   if (!isReady) return <Loading />;
   if (!user) return null;
-  if (user.role === "Student") return null;
+  if (user.role === "Admin") return null;
 
-  return <AppShell>{children}</AppShell>;
+  return <StudentShell>{children}</StudentShell>;
 }

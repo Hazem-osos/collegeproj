@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import type { AuthUser } from "@/context/AuthContext";
+import { postLoginRedirectPath } from "@/lib/auth-redirects";
 import { api, getAxiosErrorMessage } from "@/lib/axios-instance";
 
 export default function RegisterPage() {
   const { setUserFromAuthResponse, user, isReady } = useAuth();
   const router = useRouter();
 
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -17,7 +20,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (isReady && user) {
-      router.replace("/");
+      router.replace(postLoginRedirectPath(user.role, null));
     }
   }, [isReady, user, router]);
 
@@ -26,12 +29,13 @@ export default function RegisterPage() {
     setErr(null);
     setLoading(true);
     try {
-      const { data } = await api.post<{ user: { email: string; role: string } }>(
-        "/api/auth/register",
-        { email, password },
-      );
+      const { data } = await api.post<{ user: AuthUser }>("/api/auth/register", {
+        email,
+        password,
+        fullName,
+      });
       setUserFromAuthResponse(data.user);
-      router.replace("/");
+      router.replace(postLoginRedirectPath(data.user.role, null));
     } catch (e) {
       setErr(getAxiosErrorMessage(e));
     } finally {
@@ -53,12 +57,28 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm space-y-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 shadow-xl shadow-black/30">
         <div className="text-center space-y-1">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Course Management</p>
-          <h1 className="text-2xl font-semibold text-white">Register</h1>
+          <h1 className="text-2xl font-semibold text-white">Student registration</h1>
           <p className="text-sm text-zinc-400">
-            New accounts get the Student role (full CRUD in this demo). Password must be at least 8 characters.
+            Your account creates a roster student profile. Faculty enroll you into courses — you&apos;ll see them
+            under My courses with instructor names. Password at least 8 characters.
           </p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label htmlFor="fullName" className="text-xs text-zinc-500">
+              Full name
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              autoComplete="name"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              maxLength={100}
+            />
+          </div>
           <div className="space-y-1">
             <label htmlFor="email" className="text-xs text-zinc-500">
               Email

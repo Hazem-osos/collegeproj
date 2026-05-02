@@ -7,10 +7,23 @@ const getSecret = () => {
   return new TextEncoder().encode(key);
 };
 
-export type AuthPayload = { email: string; role: string };
+export type AuthPayload = {
+  email: string;
+  role: string;
+  /** Present for logged-in roster students (registration links Users → Students). */
+  studentId?: number;
+};
 
-export async function signToken(payload: AuthPayload): Promise<string> {
-  return new SignJWT({ email: payload.email, role: payload.role })
+/** Claims written into the JWT (subset serializable). */
+export type JwtSignPayload = AuthPayload;
+
+export async function signToken(payload: JwtSignPayload): Promise<string> {
+  const body: Record<string, unknown> = {
+    email: payload.email,
+    role: payload.role,
+  };
+  if (payload.studentId != null) body.studentId = payload.studentId;
+  return new SignJWT(body)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("1h")
@@ -24,9 +37,13 @@ export async function verifyToken(token: string): Promise<AuthPayload> {
     issuer: process.env.JWT_ISSUER,
     audience: process.env.JWT_AUDIENCE,
   });
-  const p = payload as JWTPayload & { email?: string; role?: string };
+  const p = payload as JWTPayload & { email?: string; role?: string; studentId?: number };
   if (!p.email || !p.role) throw new Error("Invalid token");
-  return { email: p.email, role: p.role };
+  const out: AuthPayload = { email: p.email, role: p.role };
+  if (typeof p.studentId === "number" && Number.isInteger(p.studentId)) {
+    out.studentId = p.studentId;
+  }
+  return out;
 }
 
 export function getBearerToken(request: Request): string | null {

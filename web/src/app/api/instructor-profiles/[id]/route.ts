@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAdminDb, requireAuth } from "@/lib/api-helpers";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -35,6 +35,8 @@ async function profileJson(profileId: number) {
 export async function GET(request: Request, context: Ctx) {
   const auth = await requireAuth(request);
   if ("response" in auth) return auth.response;
+  const forbid = await requireAdminDb(auth.user);
+  if (forbid) return forbid;
 
   const id = Number((await context.params).id);
   if (!Number.isInteger(id) || id < 1) {
@@ -49,6 +51,8 @@ export async function GET(request: Request, context: Ctx) {
 export async function PATCH(request: Request, context: Ctx) {
   const auth = await requireAuth(request);
   if ("response" in auth) return auth.response;
+  const forbid = await requireAdminDb(auth.user);
+  if (forbid) return forbid;
 
   const id = Number((await context.params).id);
   if (!Number.isInteger(id) || id < 1) {
@@ -82,6 +86,8 @@ export async function PATCH(request: Request, context: Ctx) {
 export async function DELETE(request: Request, context: Ctx) {
   const auth = await requireAuth(request);
   if ("response" in auth) return auth.response;
+  const forbid = await requireAdminDb(auth.user);
+  if (forbid) return forbid;
 
   const id = Number((await context.params).id);
   if (!Number.isInteger(id) || id < 1) {

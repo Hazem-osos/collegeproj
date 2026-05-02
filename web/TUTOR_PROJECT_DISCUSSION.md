@@ -1,98 +1,102 @@
 # Web Engineering Project — Discussion Notes for Your Tutor
 
-This document summarizes what was built in the Next.js frontend (`web/`), how it maps to your assignment checklist, and what you need to run locally (database + auth).
+Summary of the Next.js app (`web/`), roles, routing, and how to run it with MySQL.
 
 ---
 
-## Stack (as requested)
+## Stack (assignment alignment)
 
 | Requirement | Implementation |
 |-------------|----------------|
-| Next.js App Router | `src/app/` with route groups `(main)` for authenticated shell |
-| React functional components | All pages; `"use client"` where forms, Axios, hooks, and modals are used |
-| **Axios** | `src/lib/axios-instance.ts` — singleton with `withCredentials: true` for cookie sessions |
-| `useState` / `useEffect` | Listing data, forms, dialogs, auth bootstrap |
+| Next.js App Router | `src/app/` — route groups **`(main)`** (admin shell), **`(student)`** (student home), **`settings/`** (shared URL, role-based shell) |
+| React + `"use client"` | Interactive pages: forms, Axios, hooks, modals |
+| **Axios** | `src/lib/axios-instance.ts` — **`withCredentials: true`**, cookie session |
+| `useState` / `useEffect` | Tables, auth bootstrap, dialogs |
 
 ---
 
-## Routing & Navigation
+## Routing
 
-Public (no JWT cookie enforced by middleware):
+**Public**
 
-- **`/login`** — Sign-in; Axios `POST /api/auth/login`; sets **`cm_session`** HTTP-only cookie  
-- **`/register`** — New account `POST /api/auth/register`; same cookie flow  
+- **`/login`**, **`/register`** — `POST /api/auth/login` / `register`; **HTTP-only** cookie **`cm_session`**
 
-Protected (middleware requires valid cookie):
+**Admin only** (middleware sends students away to **`/my-courses`**)
 
-- **`/`** — Dashboard (counts for all entities)  
-- **`/dashboard`** — Server redirect to **`/`** (alias for assignment wording)  
-- **`/courses`**, **`/instructors`**, **`/instructor-profiles`**, **`/students`**, **`/enrollments`** — One **dedicated route per backend model**, each with tables + Create form + Edit modal/dialog + Delete  
+- **`/`** — Dashboard counts  
+- **`/dashboard`** → redirect **`/`**  
+- **`/courses`**, **`/instructors`**, **`/instructor-profiles`**, **`/students`**, **`/enrollments`** — full CRUD UI  
+- **`/settings`** — password (App shell)
 
-Sidebar uses **`next/link`** for client-side navigation (`AppShell.tsx`).
+**Student only**
 
----
+- **`/my-courses`** — enrolled courses + **instructor (professor) name**  
+- **`/settings`** — password + **display name** (`PATCH /api/me/profile`)
 
-## Authentication Architecture
-
-1. **Login / register** call Route Handlers under `src/app/api/auth/` which sign a JWT (jose + `JWT_KEY`) and attach it via **`Set-Cookie`** (`httpOnly`, `sameSite=lax`, `secure` in production). No long-lived JWT in `localStorage` anymore.  
-2. **Axios** is configured with **`withCredentials: true`** so the browser attaches the cookie on same-origin `/api/*` requests.  
-3. **`src/middleware.ts`** runs on **page routes only** (`matcher` **excludes** `/api`). Unauthenticated visits are redirected to `/login?next=…`. Authenticated visits to `/login` or `/register` redirect **home**.  
-4. **`AuthContext`** (`src/context/AuthContext.tsx`): on mount calls **`GET /api/auth/me`** with Axios to hydrate `{ email, role }`. After login/register, response body includes `user` so you don’t flash “logged out” before `/me`. **`POST /api/auth/logout`** clears the cookie server-side.
-
-API routes accept either **Bearer token** header **or** the session cookie (`extractAuthToken` in `src/lib/auth-jwt.ts`) — useful if you demo with Swagger or curl.
+**`next/link`** in **`AppShell`** / **`StudentShell`**.
 
 ---
 
-## Backend / CRUD Coverage (aligned with Prisma schema)
+## Authentication
 
-REST handlers live in `src/app/api/`.
-
-| Domain model | Routes | Frontend page |
-|--------------|--------|----------------|
-| **User** (auth) | `/api/auth/*` (`login`, `register`, `logout`, `me`) | Login + Register |
-| **Instructor** | `GET`/`POST` `/api/instructors`, `GET`/`PATCH`/`DELETE` `/api/instructors/[id]` | `/instructors` |
-| **InstructorProfile** | `GET`/`POST` `/api/instructor-profiles`, `GET`/`PATCH`/`DELETE` `/api/instructor-profiles/[id]` | `/instructor-profiles` |
-| **Course** | `GET`/`POST` `/api/courses`, `GET`/`PATCH`/`DELETE` `/api/courses/[id]` | `/courses` |
-| **Student** | `GET`/`POST` `/api/students`, `GET`/`PATCH`/`DELETE` `/api/students/[id]` | `/students` |
-| **Enrollment** | `GET`/`POST` `/api/enrollments`, `GET`/`PATCH`/`DELETE` `/api/enrollments/[id]` | `/enrollments` |
-
-**Note:** Mutation APIs no longer gate on `"Admin"` only; any **authenticated** user can mutate (students registered via `/register` get role `Student` but still demo full CRUD for the assignment).
+1. JWT in **`cm_session`** (jose, **`JWT_KEY`**).  
+2. **`src/middleware.ts`** — validates cookie on pages; redirects by **role** (students cannot open admin URLs).  
+3. **`AuthContext`** — **`GET /api/auth/me`** hydrates **`{ email, role, studentId?, fullName? }`**.  
+4. **`POST /api/auth/logout`** clears cookie.  
+5. APIs accept **cookie or** `Authorization: Bearer` (`extractAuthToken`).
 
 ---
 
-## Database changes you must mention
+## Roles & data model
 
-A **`Users`** table was added (`prisma/schema.prisma` + migration `prisma/migrations/20260502120000_add_users/migration.sql`) for persisted registration:
+- **`Users`** — login; **`Role`**: `Admin` | `Student`; optional **`StudentId`** (FK → **`Students`**, unique).  
+- **Registration** — creates **`Student`** + **`User`** with **`StudentId`** set.  
+- **Admin** seed: **`admin@uni.com`** / **`password123`**, **`StudentId`** null.  
+- **Enrollment** — only **admins** use **`/api/enrollments`**; students read **`GET /api/me/enrollments`**.
 
-- Run migrations against MySQL (`DATABASE_URL`): e.g. `npx prisma migrate deploy`  
-- Seed creates **`admin@uni.com` / `password123`** via bcrypt (`prisma/seed.ts`)
-
-If the **`Users`** table doesn’t exist yet, registration will fail until migration is applied.
-
----
-
-## Environment
-
-- **`JWT_KEY`** — required for signing tokens (middleware + APIs). Already expected by the codebase.  
+Management routes use **`requireAdminDb`** (DB role, with JWT fallback for rare token-only bootstrap). Student-scoped APIs use **`requireStudentScoped`**.
 
 ---
 
-## Legacy .NET note
+## Notable API routes
 
-There is still a legacy **ASP.NET CourseManagementAPI** in the repo root; **`web`** is self-contained Next.js **BFF** pattern (pages + `/api` + Prisma + MySQL). If the assignment insists on wiring the browser to **only** another port, mirror the cookie contract or point Axios `baseURL` at that server and replicate `withCredentials`; the current tutor demo is intentionally **same-app** for cohesion.
+| Area | Routes |
+|------|--------|
+| Auth | `login`, `register`, `logout`, `me`, **`password`** |
+| Student self | **`GET /api/me/enrollments`**, **`PATCH /api/me/profile`** |
+| Admin CRUD | `courses`, `instructors`, `students`, `enrollments`, `instructor-profiles` (+ `[id]` PATCH/DELETE where applicable) |
 
 ---
 
-## Files worth opening in review
+## Database
 
-| Area | Path |
+Apply schema to MySQL (`DATABASE_URL`):
+
+- **`npm run db:deploy`** or **`npm run db:push`**  
+- If Prisma warns on **`Users.StudentId`** unique index: **`npx prisma db push --accept-data-loss`** is often used in dev when only adding nullable FKs.  
+
+Migrations folder includes:
+
+- **`20260422120000_init`** — core LMS tables  
+- **`20260502120000_add_users`** — **`Users`**  
+- **`20260502183000_users_link_student`** — **`Users.StudentId`** → **`Students`**
+
+**`npm run db:seed`** — admin user + sample instructor/course.
+
+---
+
+## Files to review
+
+| Topic | Path |
 |------|------|
-| Middleware | `web/src/middleware.ts` |
+| Middleware + role redirects | `web/src/middleware.ts` |
+| Role helpers | `web/src/lib/auth-redirects.ts`, `web/src/lib/api-helpers.ts` |
+| JWT claims | `web/src/lib/auth-jwt.ts` |
 | Axios | `web/src/lib/axios-instance.ts` |
-| Session cookie helpers | `web/src/lib/session-cookie.ts` |
-| Auth state | `web/src/context/AuthContext.tsx` |
-| Protected shell | `web/src/components/AuthedLayout.tsx` |
+| Auth UI state | `web/src/context/AuthContext.tsx` |
+| Admin shell | `web/src/components/AuthedLayout.tsx`, `AppShell.tsx` |
+| Student shell | `web/src/components/StudentAuthedLayout.tsx`, `StudentShell.tsx` |
 
 ---
 
-_Generated as a discussion aid for grading / walk-through with your tutor._
+_Living document for grading / demo with your tutor._

@@ -10,7 +10,12 @@ import {
 } from "react";
 import { api } from "@/lib/axios-instance";
 
-export type AuthUser = { email: string; role: string };
+export type AuthUser = {
+  email: string;
+  role: string;
+  studentId?: number | null;
+  fullName?: string | null;
+};
 
 type AuthContextValue = {
   user: AuthUser | null;

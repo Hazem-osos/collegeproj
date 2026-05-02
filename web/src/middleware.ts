@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth-jwt";
+import {
+  isAdminOnlyPagePath,
+  postLoginRedirectPath,
+  studentDefaultPath,
+} from "@/lib/auth-redirects";
 import { SESSION_COOKIE_NAME } from "@/lib/session-cookie";
 
 function isPublicAuthPath(pathname: string) {
@@ -20,10 +25,16 @@ export async function middleware(request: NextRequest) {
       (pathname === "/login" || pathname.startsWith("/login/") || pathname === "/register")
     ) {
       try {
-        await verifyToken(tokenEarly);
-        return NextResponse.redirect(new URL("/", request.url));
+        const payload = await verifyToken(tokenEarly);
+        const dst = postLoginRedirectPath(
+          payload.role,
+          pathname === "/login" || pathname.startsWith("/login/")
+            ? request.nextUrl.searchParams.get("next")
+            : null,
+        );
+        return NextResponse.redirect(new URL(dst, request.url));
       } catch {
-        /* stale cookie → allow login */
+        /* stale cookie */
       }
     }
     return NextResponse.next();
@@ -37,9 +48,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  let payload;
   try {
-    await verifyToken(token);
-    return NextResponse.next();
+    payload = await verifyToken(token);
   } catch {
     const res = NextResponse.redirect(new URL("/login", request.url));
     res.cookies.set(SESSION_COOKIE_NAME, "", {
@@ -51,6 +62,18 @@ export async function middleware(request: NextRequest) {
     });
     return res;
   }
+
+  if (payload.role === "Student" && isAdminOnlyPagePath(pathname)) {
+    return NextResponse.redirect(new URL(studentDefaultPath(), request.url));
+  }
+
+  if (payload.role === "Admin") {
+    if (pathname === "/my-courses" || pathname.startsWith("/my-courses/")) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

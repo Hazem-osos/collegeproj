@@ -2,7 +2,7 @@
 
 Monorepo with a **Next.js 15** full-stack app in `web/` (App Router UI + REST `/api/*` + Prisma 5 + MySQL), plus an optional **ASP.NET Core** API in the repo root for reference.
 
-Recommended path for coursework: run the **Next.js** app — it owns the schema (`web/prisma/`), JWT session cookies, and CRUD for all entities.
+The Next app owns the schema (`web/prisma/`): **Admin** manages courses, instructors, students, enrollments, and profiles. **Registered students** get a roster row (`Students`) linked to **`Users.StudentId`** and only see **My courses** (+ **Settings**).
 
 ---
 
@@ -10,9 +10,9 @@ Recommended path for coursework: run the **Next.js** app — it owns the schema 
 
 ### Prerequisites
 
-- **Node.js 20+** and npm
-- **MySQL 8** (local install or Docker)
-- (**Optional**) .NET 10 SDK — only if you run the legacy API
+- **Node.js 20+** and npm  
+- **MySQL 8** (local install or Docker)  
+- (**Optional**) .NET 10 SDK — only if you run the legacy API  
 
 ### 1. Database
 
@@ -22,7 +22,7 @@ From the **repository root**:
 docker compose up -d
 ```
 
-This starts MySQL on port `3306` with database `coursemanagement` (see `docker-compose.yml`).
+Starts MySQL on port `3306`, database **`coursemanagement`** (`docker-compose.yml`).
 
 ### 2. Environment
 
@@ -31,14 +31,14 @@ cd web
 cp .env.example .env
 ```
 
-Edit `web/.env` if your MySQL credentials differ. You **must** set a strong **`JWT_KEY`** for production.
+Edit `web/.env` if credentials differ. Set a strong **`JWT_KEY`** for production.
 
-| Variable       | Purpose                          |
-|----------------|----------------------------------|
-| `DATABASE_URL` | MySQL connection string           |
-| `JWT_KEY`      | Secret for signing session JWTs   |
-| `JWT_ISSUER`   | Optional JWT issuer (`iss`)      |
-| `JWT_AUDIENCE` | Optional JWT audience (`aud`)    |
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | MySQL connection string |
+| `JWT_KEY` | Secret for JWT session signing |
+| `JWT_ISSUER` | Optional JWT `iss` claim |
+| `JWT_AUDIENCE` | Optional JWT `aud` claim |
 
 ### 3. Install and sync schema
 
@@ -46,20 +46,19 @@ Edit `web/.env` if your MySQL credentials differ. You **must** set a strong **`J
 npm install
 ```
 
-Then either apply **migration history** (CI / shared DB):
+Then choose one:
 
-```bash
-npm run db:deploy
-npm run db:seed
-```
+- **Migrate + seed** (teams / CI):  
+  `npm run db:deploy && npm run db:seed`
 
-Or push the schema directly in dev (simplest first run):
+- **Push + seed** (fast local):  
+  `npm run setup:dev`  
+  (`prisma generate`, `db push`, `db seed`)
 
-```bash
-npm run setup:dev
-```
+If `db push` warns about adding a **`StudentId`** unique index on **`Users`**, you can use:
 
-`setup:dev` runs `prisma generate`, `db push`, and `db seed`.
+`npx prisma db push --accept-data-loss`  
+(multiple **NULL** `StudentId`s for admins remain valid in MySQL.)
 
 ### 4. Run the app
 
@@ -67,70 +66,71 @@ npm run setup:dev
 npm run dev
 ```
 
-Open **[http://localhost:3000](http://localhost:3000)**. Sign in with **`admin@uni.com` / `password123`** (after seed), or use **Register** for new accounts (`Students` receive role `Student`).
+Open **http://localhost:3000**
+
+- **Admin:** `admin@uni.com` / `password123` (after seed) → full dashboard, CRUD modules, enrollments.
+- **Student:** **Register** (full name + email + password) → adds a **`Students`** row and links **`Users`**. Admins enroll them via **Enrollments**. Students use **My courses** (instructor name per course) and **Settings** (password + display name).
+
+---
+
+## Roles & routing (Next app)
+
+| Role | Pages | APIs |
+|------|-------|------|
+| **Admin** | `/`, `/courses`, `/instructors`, `/students`, `/enrollments`, `/instructor-profiles`, **`/settings`** | All management CRUD + auth |
+| **Student** | **`/my-courses`**, **`/settings`** only | `GET /api/me/enrollments`, `PATCH /api/me/profile`, `POST /api/auth/password`, plus `/api/auth/me` |
+
+Middleware blocks students from admin URLs (redirect to **`/my-courses`**). Management **`/api/*`** returns **403** for non-admins (`requireAdminDb`).
 
 ---
 
 ## `web/` npm scripts
 
-| Script        | Command                    | Use case |
-|---------------|----------------------------|----------|
-| `dev`         | Next dev server (Turbopack) | Daily dev |
-| `build`       | `prisma generate` + prod build | Production |
-| `start`       | `next start`               | Run after `build` |
-| `lint`        | ESLint                     | CI / quality |
-| `setup:dev`   | generate + db push + seed  | Fresh local DB |
-| `db:push`     | `prisma db push`           | Dev: sync schema without migration files |
-| `db:migrate`  | `prisma migrate dev`       | Dev: create/apply migrations |
-| `db:deploy`   | `prisma migrate deploy`    | Prod/CI apply migrations |
-| `db:seed`     | `prisma db seed`           | Load demo admin + sample data |
-| `db:generate` | `prisma generate`          | Refresh client |
+| Script | Use |
+|--------|-----|
+| `dev` | Next dev (Turbopack) |
+| `build` / `start` | Production |
+| `lint` | ESLint |
+| `setup:dev` | `generate` + `db push` + `db seed` |
+| `db:push` | Sync schema without new migration files |
+| `db:migrate` | Create / apply migrations in dev |
+| `db:deploy` | Apply migrations (CI / prod) |
+| `db:seed` | Demo admin + sample instructor/course |
 
-`postinstall` runs **`prisma generate`** automatically after `npm install`.
+`postinstall` runs **`prisma generate`**.
 
 ---
 
 ## Authentication (Next app)
 
-- Login and registration set an **HTTP-only** cookie **`cm_session`** (JWT).
-- **Axios** is configured with **`withCredentials: true`** for same-origin API calls.
-- **Middleware** protects page routes (not `/api`); `/api` returns `401` JSON when unauthenticated.
-- Bearer `Authorization` is still accepted by API handlers for tooling (optional).
-
-Further detail for demos or grading: `web/TUTOR_PROJECT_DISCUSSION.md`.
+- Session: **HTTP-only** cookie **`cm_session`** (JWT). **Axios** uses **`withCredentials: true`**.
+- **Middleware** protects page routes (not **`/api`**). **`POST /api/auth/logout`** clears the cookie.
+- Optional **Bearer** header still works for tooling.
 
 ---
 
 ## Entity model (Prisma)
 
-- **User** — app login (`Users` table; bcrypt passwords)
+- **User** — login (`Users`; bcrypt; optional **`StudentId`** → **Student**)
 - **Instructor**, **InstructorProfile** (1:1)
-- **Course** — belongs to **Instructor**
+- **Course**
 - **Student**
-- **Enrollment** — Student ↔ Course (grade, enrolled date)
+- **Enrollment** — links **Student** ↔ **Course** (grade, enrolled date)
 
 ---
 
 ## Legacy ASP.NET API
 
-The root **CourseManagementAPI** project is optional. Typical flow:
-
-1. Prefer **Prisma/MySQL** for schema; legacy EF migrations may not match unless you align them explicitly.
-2. From repo root: `dotnet restore` → `dotnet run`
-3. HTTP: **`http://localhost:5007`** (see launch settings).
-
-Swagger on .NET exposes `/api/Auth/login` Bearer JWT; behavior differs from the Next.js cookie session.
-
-Classic assignment-style notes (Bearer token, SQLite in older forks, Admin-only mutations) apply only when you serve that stack instead of **`web/`**.
+Optional root **CourseManagementAPI** project. Same MySQL as Prisma if you align schema. `dotnet restore` → `dotnet run` (often **http://localhost:5007**). Cookie session and role model differ from **`web/`**.
 
 ---
 
 ## Technology summary
 
-| Area        | Stack |
-|------------|--------|
-| Primary UI + API | Next.js 15, React 19, Tailwind 4 |
-| HTTP client | Axios |
-| Persistence | Prisma 5, MySQL 8 |
+| Area | Stack |
+|------|--------|
+| UI + API | Next.js 15, React 19, Tailwind 4 |
+| HTTP | Axios |
+| DB | Prisma 5, MySQL 8 |
 | Auth | jose (JWT), HTTP-only cookie, bcryptjs |
 | Optional | ASP.NET Core 10, EF Core |

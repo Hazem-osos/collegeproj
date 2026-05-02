@@ -11,8 +11,9 @@ async function main() {
       email: "admin@uni.com",
       passwordHash,
       role: "Admin",
+      studentId: null,
     },
-    update: { passwordHash, role: "Admin" },
+    update: { passwordHash, role: "Admin", studentId: null },
   });
 
   const existing = await prisma.instructor.findFirst({

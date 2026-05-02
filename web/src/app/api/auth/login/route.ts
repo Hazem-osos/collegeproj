@@ -32,14 +32,16 @@ export async function POST(request: Request) {
 
   let role: string;
   let ok = false;
+  let studentId: number | null | undefined;
 
   if (user) {
     ok = await bcrypt.compare(password, user.passwordHash);
     role = user.role;
+    studentId = user.studentId;
   } else if (normalized === "admin@uni.com" && password === "password123") {
-    // Legacy demo parity when DB seed has not yet created Users row
     ok = true;
     role = "Admin";
+    studentId = undefined;
   } else {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
@@ -48,8 +50,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  const jwt = await signToken({ email: normalized, role });
-  const res = NextResponse.json({ user: { email: normalized, role } });
+  const jwt = await signToken({
+    email: normalized,
+    role,
+    ...(role === "Student" && studentId != null ? { studentId } : {}),
+  });
+  let fullName: string | null = null;
+  if (studentId != null) {
+    const s = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { fullName: true },
+    });
+    fullName = s?.fullName ?? null;
+  }
+
+  const res = NextResponse.json({
+    user: {
+      email: normalized,
+      role,
+      studentId: studentId ?? null,
+      fullName,
+    },
+  });
   setSessionCookie(res, jwt);
   return res;
 }
