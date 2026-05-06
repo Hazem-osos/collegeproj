@@ -3,5 +3,6 @@ public interface ICourseService
     Task<List<CourseResponseDto>> GetAllAsync();
     Task<CourseResponseDto?> GetByIdAsync(int id);
     Task<CourseResponseDto> CreateAsync(CreateCourseDto dto);
+    Task<CourseResponseDto?> PatchAsync(int id, PatchCourseDto dto);
     Task<bool> DeleteAsync(int id);
 }

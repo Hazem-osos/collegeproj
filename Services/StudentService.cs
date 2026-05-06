@@ -48,6 +48,21 @@ public class StudentService : IStudentService
         return await GetByIdAsync(student.Id) ?? throw new Exception("Save failed");
     }
 
+    public async Task<StudentResponseDto?> PatchAsync(int id, PatchStudentDto dto)
+    {
+        if (dto.FullName is null && dto.Email is null)
+            throw new ArgumentException("Validation failed");
+
+        var student = await _context.Students.FindAsync(id);
+        if (student is null) return null;
+
+        if (dto.FullName is not null) student.FullName = dto.FullName;
+        if (dto.Email is not null) student.Email = dto.Email;
+
+        await _context.SaveChangesAsync();
+        return await GetByIdAsync(id);
+    }
+
     public async Task<bool> DeleteAsync(int id)
     {
         var student = await _context.Students.FindAsync(id);

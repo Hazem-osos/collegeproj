@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { api } from "@/lib/axios-instance";
+import { api, clearDotnetSessionToken } from "@/lib/axios-instance";
 
 export type AuthUser = {
   email: string;
@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await api.post("/api/auth/logout");
     } finally {
+      clearDotnetSessionToken();
       setUser(null);
     }
   }, []);

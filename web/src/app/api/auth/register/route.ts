@@ -65,6 +65,7 @@ export async function POST(request: Request) {
         studentId: student.id,
         fullName: student.fullName,
       },
+      token: jwt,
     },
     { status: 201 },
   );

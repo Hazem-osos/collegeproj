@@ -5,4 +5,5 @@ public class Student
     public string Email { get; set; } = string.Empty;
 
     public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
+    public User? User { get; set; }
 }

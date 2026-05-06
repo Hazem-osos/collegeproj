@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import type { AuthUser } from "@/context/AuthContext";
 import { postLoginRedirectPath } from "@/lib/auth-redirects";
-import { api, getAxiosErrorMessage } from "@/lib/axios-instance";
+import {
+  api,
+  getAxiosErrorMessage,
+  isDotnetBackendEnabled,
+  setDotnetSessionToken,
+} from "@/lib/axios-instance";
 
 export default function RegisterPage() {
   const { setUserFromAuthResponse, user, isReady } = useAuth();
@@ -29,11 +34,14 @@ export default function RegisterPage() {
     setErr(null);
     setLoading(true);
     try {
-      const { data } = await api.post<{ user: AuthUser }>("/api/auth/register", {
+      const { data } = await api.post<{ user: AuthUser; token?: string }>("/api/auth/register", {
         email,
         password,
         fullName,
       });
+      if (isDotnetBackendEnabled() && typeof data.token === "string") {
+        setDotnetSessionToken(data.token);
+      }
       setUserFromAuthResponse(data.user);
       router.replace(postLoginRedirectPath(data.user.role, null));
     } catch (e) {

@@ -6,7 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import type { AuthUser } from "@/context/AuthContext";
 import { postLoginRedirectPath } from "@/lib/auth-redirects";
-import { api, getAxiosErrorMessage } from "@/lib/axios-instance";
+import {
+  api,
+  getAxiosErrorMessage,
+  isDotnetBackendEnabled,
+  setDotnetSessionToken,
+  clearDotnetSessionToken,
+} from "@/lib/axios-instance";
 
 function LoginForm() {
   const { setUserFromAuthResponse, user, isReady } = useAuth();
@@ -30,7 +36,26 @@ function LoginForm() {
     setErr(null);
     setLoading(true);
     try {
-      const { data } = await api.post<{ user: AuthUser }>("/api/auth/login", { email, password });
+      const { data } = await api.post<{ user: AuthUser; token?: string }>("/api/auth/login", {
+        email,
+        password,
+      });
+      if (isDotnetBackendEnabled() && typeof data.token === "string") {
+        setDotnetSessionToken(data.token);
+        const boot = await fetch("/api/auth/bootstrap-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ token: data.token }),
+        });
+        if (!boot.ok) {
+          clearDotnetSessionToken();
+          setErr(
+            "Could not start browser session. Ensure JWT_KEY (web .env) matches Jwt:Key in dotnet appsettings (and issuer/audience align).",
+          );
+          return;
+        }
+      }
       setUserFromAuthResponse(data.user);
       router.replace(postLoginRedirectPath(data.user.role, nextParam));
     } catch (e) {
@@ -56,7 +81,9 @@ function LoginForm() {
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Course Management</p>
           <h1 className="text-2xl font-semibold text-white">Sign in</h1>
           <p className="text-sm text-zinc-400">
-            Session is stored in an HTTP-only cookie; Axios sends it with credentials.
+            {isDotnetBackendEnabled()
+              ? "Admin data is loaded from the ASP.NET API; the session cookie keeps page routes protected."
+              : "Session is stored in an HTTP-only cookie; Axios sends it with credentials."}
           </p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">

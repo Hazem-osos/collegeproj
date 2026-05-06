@@ -1,56 +1,60 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 [ApiController]
-[Route("api/courses")]
+[Route("api/instructor-profiles")]
 [Authorize(Roles = "Admin")]
-public class CoursesController : ControllerBase
+public class InstructorProfilesController : ControllerBase
 {
-    private readonly ICourseService _courseService;
+    private readonly IInstructorProfileService _profileService;
 
-    public CoursesController(ICourseService courseService)
+    public InstructorProfilesController(IInstructorProfileService profileService)
     {
-        _courseService = courseService;
+        _profileService = profileService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var courses = await _courseService.GetAllAsync();
-        return Ok(courses);
+        var rows = await _profileService.GetAllAsync();
+        return Ok(rows);
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         if (id < 1) return BadRequest(new { error = "Invalid id" });
-        var course = await _courseService.GetByIdAsync(id);
-        return course is null ? NotFound(new { error = "Not found" }) : Ok(course);
+        var row = await _profileService.GetByIdAsync(id);
+        return row is null ? NotFound(new { error = "Not found" }) : Ok(row);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateCourseDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateInstructorProfileDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(new { error = "Validation failed" });
         try
         {
-            var created = await _courseService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            var created = await _profileService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created!.Id }, created);
         }
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message });
         }
+        catch (InvalidOperationException ex) when (ex.Message == "ProfileDup")
+        {
+            return Conflict(new { error = "Profile already exists for this instructor — use PATCH" });
+        }
     }
 
     [HttpPatch("{id:int}")]
-    public async Task<IActionResult> Patch(int id, [FromBody] PatchCourseDto? dto)
+    public async Task<IActionResult> Patch(int id, [FromBody] JsonElement body)
     {
         if (id < 1) return BadRequest(new { error = "Invalid id" });
-        if (dto is null) return BadRequest(new { error = "Validation failed" });
         try
         {
-            var updated = await _courseService.PatchAsync(id, dto);
+            var updated = await _profileService.PatchAsync(id, body);
             return updated is null ? NotFound(new { error = "Not found" }) : Ok(updated);
         }
         catch (ArgumentException ex)
@@ -63,7 +67,7 @@ public class CoursesController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         if (id < 1) return BadRequest(new { error = "Invalid id" });
-        var deleted = await _courseService.DeleteAsync(id);
+        var deleted = await _profileService.DeleteAsync(id);
         return deleted ? NoContent() : NotFound();
     }
 }

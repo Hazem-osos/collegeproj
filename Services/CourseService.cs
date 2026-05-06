@@ -39,6 +39,10 @@ public class CourseService : ICourseService
 
     public async Task<CourseResponseDto> CreateAsync(CreateCourseDto dto)
     {
+        var instructorExists = await _context.Instructors.AnyAsync(i => i.Id == dto.InstructorId);
+        if (!instructorExists)
+            throw new ArgumentException("Instructor not found");
+
         var course = new Course
         {
             Title = dto.Title,
@@ -49,6 +53,29 @@ public class CourseService : ICourseService
         await _context.SaveChangesAsync();
 
         return await GetByIdAsync(course.Id) ?? throw new Exception("Save failed");
+    }
+
+    public async Task<CourseResponseDto?> PatchAsync(int id, PatchCourseDto dto)
+    {
+        if (dto.Title is null && !dto.Credits.HasValue && !dto.InstructorId.HasValue)
+            throw new ArgumentException("Validation failed");
+
+        var course = await _context.Courses.FindAsync(id);
+        if (course is null) return null;
+
+        if (dto.InstructorId.HasValue)
+        {
+            var instructorExists = await _context.Instructors.AnyAsync(i => i.Id == dto.InstructorId.Value);
+            if (!instructorExists)
+                throw new ArgumentException("Instructor not found");
+            course.InstructorId = dto.InstructorId.Value;
+        }
+
+        if (dto.Title is not null) course.Title = dto.Title;
+        if (dto.Credits.HasValue) course.Credits = dto.Credits.Value;
+
+        await _context.SaveChangesAsync();
+        return await GetByIdAsync(id);
     }
 
     public async Task<bool> DeleteAsync(int id)
