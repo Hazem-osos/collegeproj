@@ -14,7 +14,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        // Keep short claim names so tokens match Next.js `jose` (email, role, studentId).
+        // Keep short claim names so tokens match Next.js `jose` (email, role, studentId, instructorId).
         options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {

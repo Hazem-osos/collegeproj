@@ -1,4 +1,4 @@
-/** Admin-only paths (students are redirected away by middleware). */
+/** Admin dashboard paths (students and instructors are redirected away by middleware). */
 export const STUDENT_BLOCKED_PREFIXES = [
   "/courses",
   "/instructors",
@@ -19,16 +19,39 @@ export function studentDefaultPath() {
   return "/my-courses";
 }
 
+export function instructorDefaultPath() {
+  return "/teaching";
+}
+
 export function postLoginRedirectPath(role: string, nextFromQuery: string | null): string {
   if (role === "Admin") {
     const next = nextFromQuery?.trim();
     return next?.startsWith("/") ? next : "/";
   }
 
+  if (role === "Instructor") {
+    const next = nextFromQuery?.trim();
+    if (
+      next?.startsWith("/") &&
+      (next === "/teaching" ||
+        next.startsWith("/teaching/") ||
+        next === "/settings" ||
+        next.startsWith("/settings/"))
+    ) {
+      return next;
+    }
+    return instructorDefaultPath();
+  }
+
   const next = nextFromQuery?.trim();
   if (
     next?.startsWith("/") &&
-    (next === "/my-courses" || next.startsWith("/my-courses/") || next === "/settings")
+    (next === "/my-courses" ||
+      next.startsWith("/my-courses/") ||
+      next === "/browse-courses" ||
+      next.startsWith("/browse-courses/") ||
+      next === "/settings" ||
+      next.startsWith("/settings/"))
   ) {
     return next;
   }

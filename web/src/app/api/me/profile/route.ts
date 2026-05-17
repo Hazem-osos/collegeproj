@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireStudentScoped } from "@/lib/api-helpers";
+import { requireAuth } from "@/lib/api-helpers";
 
 const patchSchema = z.object({
   fullName: z.string().min(1).max(100),
@@ -10,8 +10,15 @@ const patchSchema = z.object({
 export async function PATCH(request: Request) {
   const auth = await requireAuth(request);
   if ("response" in auth) return auth.response;
-  const st = await requireStudentScoped(auth.user);
-  if (st instanceof NextResponse) return st;
+
+  const row = await prisma.user.findUnique({
+    where: { email: auth.user.email.toLowerCase() },
+    select: { role: true, studentId: true, instructorId: true },
+  });
+
+  if (!row) {
+    return NextResponse.json({ error: "Profile not available" }, { status: 403 });
+  }
 
   let raw: unknown;
   try {
@@ -25,12 +32,23 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Validation failed" }, { status: 400 });
   }
 
-  const sid = st.studentId;
-  const updated = await prisma.student.update({
-    where: { id: sid },
-    data: { fullName: parsed.data.fullName.trim() },
-    select: { fullName: true, email: true },
-  });
+  if (row.role === "Student" && row.studentId != null) {
+    const updated = await prisma.student.update({
+      where: { id: row.studentId },
+      data: { fullName: parsed.data.fullName.trim() },
+      select: { fullName: true, email: true },
+    });
+    return NextResponse.json(updated);
+  }
 
-  return NextResponse.json(updated);
+  if (row.role === "Instructor" && row.instructorId != null) {
+    const updated = await prisma.instructor.update({
+      where: { id: row.instructorId },
+      data: { fullName: parsed.data.fullName.trim() },
+      select: { fullName: true, email: true },
+    });
+    return NextResponse.json(updated);
+  }
+
+  return NextResponse.json({ error: "Profile not available for this account" }, { status: 403 });
 }

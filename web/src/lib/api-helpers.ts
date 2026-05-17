@@ -55,3 +55,19 @@ export async function requireStudentScoped(
 
   return { studentId: row.studentId };
 }
+
+/** Instructor account linked to roster Instructor row (Users.instructorId). */
+export async function requireInstructorScoped(
+  auth: AuthPayload,
+): Promise<{ instructorId: number } | NextResponse> {
+  const row = await prisma.user.findUnique({
+    where: { email: auth.email.toLowerCase() },
+    select: { role: true, instructorId: true },
+  });
+
+  if (!row || row.role !== "Instructor" || row.instructorId == null) {
+    return NextResponse.json({ error: "Instructor access only" }, { status: 403 });
+  }
+
+  return { instructorId: row.instructorId };
+}

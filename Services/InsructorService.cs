@@ -17,7 +17,8 @@ public class InstructorService : IInstructorService
             {
                 Id = i.Id,
                 FullName = i.FullName,
-                Email = i.Email
+                Email = i.Email,
+                HasLogin = i.User != null
             })
             .ToListAsync();
     }
@@ -31,7 +32,8 @@ public class InstructorService : IInstructorService
             {
                 Id = i.Id,
                 FullName = i.FullName,
-                Email = i.Email
+                Email = i.Email,
+                HasLogin = i.User != null
             })
             .FirstOrDefaultAsync();
     }

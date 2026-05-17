@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 const nav = [
+  { href: "/browse-courses", label: "Browse & enroll" },
   { href: "/my-courses", label: "My courses" },
   { href: "/settings", label: "Settings" },
 ] as const;
@@ -23,7 +24,7 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="flex flex-col gap-1" aria-label="Student">
           {nav.map((item) => {
-            const active = pathname === item.href;
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}

@@ -15,9 +15,21 @@ export async function GET(request: Request) {
   if (forbid) return forbid;
 
   const rows = await prisma.instructor.findMany({
-    select: { id: true, fullName: true, email: true },
+    orderBy: { id: "asc" },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      user: { select: { id: true } },
+    },
   });
-  return NextResponse.json(rows);
+  const body = rows.map((r) => ({
+    id: r.id,
+    fullName: r.fullName,
+    email: r.email,
+    hasLogin: r.user != null,
+  }));
+  return NextResponse.json(body);
 }
 
 export async function POST(request: Request) {

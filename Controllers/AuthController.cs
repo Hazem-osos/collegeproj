@@ -29,6 +29,7 @@ public class AuthController : ControllerBase
 
         string role;
         int? studentId = null;
+        int? instructorId = null;
 
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalized);
         if (user is not null)
@@ -37,6 +38,7 @@ public class AuthController : ControllerBase
                 return Unauthorized();
             role = user.Role;
             studentId = user.StudentId;
+            instructorId = user.InstructorId;
         }
         else if (normalized == "admin@uni.com" && password == "password123")
         {
@@ -55,8 +57,15 @@ public class AuthController : ControllerBase
                 .Select(s => s.FullName)
                 .FirstOrDefaultAsync();
         }
+        else if (instructorId.HasValue)
+        {
+            fullName = await _db.Instructors.AsNoTracking()
+                .Where(i => i.Id == instructorId.Value)
+                .Select(i => i.FullName)
+                .FirstOrDefaultAsync();
+        }
 
-        var token = GenerateToken(normalized, role, studentId);
+        var token = GenerateToken(normalized, role, studentId, instructorId);
         return Ok(new
         {
             token,
@@ -65,12 +74,13 @@ public class AuthController : ControllerBase
                 email = normalized,
                 role,
                 studentId,
+                instructorId,
                 fullName,
             },
         });
     }
 
-    private string GenerateToken(string email, string role, int? studentId)
+    private string GenerateToken(string email, string role, int? studentId, int? instructorId)
     {
         var claims = new List<Claim>
         {
@@ -79,6 +89,8 @@ public class AuthController : ControllerBase
         };
         if (studentId.HasValue)
             claims.Add(new Claim("studentId", studentId.Value.ToString(), ClaimValueTypes.Integer32));
+        if (instructorId.HasValue)
+            claims.Add(new Claim("instructorId", instructorId.Value.ToString(), ClaimValueTypes.Integer32));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

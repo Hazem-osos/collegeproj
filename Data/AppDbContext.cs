@@ -22,6 +22,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey<User>(u => u.StudentId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(u => u.StudentId).IsUnique();
+            e.HasOne(u => u.Instructor)
+                .WithOne(i => i.User)
+                .HasForeignKey<User>(u => u.InstructorId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(u => u.InstructorId).IsUnique();
         });
 
         modelBuilder.Entity<Instructor>().ToTable("Instructors");
@@ -62,5 +67,7 @@ public class AppDbContext : DbContext
             .Property(p => p.OfficeLocation).HasMaxLength(255);
         modelBuilder.Entity<Enrollment>()
             .Property(e => e.Grade).HasMaxLength(10);
+        modelBuilder.Entity<Enrollment>()
+            .Property(e => e.Status).HasMaxLength(32);
     }
 }

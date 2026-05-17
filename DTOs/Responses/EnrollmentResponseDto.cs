@@ -2,6 +2,7 @@ public class EnrollmentResponseDto
 {
     public int Id { get; set; }
     public string EnrolledAt { get; set; } = string.Empty;
+    public string Status { get; set; } = "approved";
     public string? Grade { get; set; }
     public int StudentId { get; set; }
     public int CourseId { get; set; }

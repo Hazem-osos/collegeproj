@@ -10,6 +10,9 @@ public class CreateEnrollmentDto
 
     public DateTime? EnrolledAt { get; set; }
 
+    [MaxLength(32)]
+    public string? Status { get; set; }
+
     [MaxLength(10)]
     public string? Grade { get; set; }
 }

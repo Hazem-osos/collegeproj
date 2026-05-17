@@ -8,6 +8,7 @@ const createSchema = z.object({
   courseId: z.number().int().positive(),
   enrolledAt: z.string().datetime().optional(),
   grade: z.string().max(10).nullable().optional(),
+  status: z.enum(["pending", "approved", "rejected"]).optional(),
 });
 
 export async function GET(request: Request) {
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
     select: {
       id: true,
       enrolledAt: true,
+      status: true,
       grade: true,
       studentId: true,
       courseId: true,
@@ -32,6 +34,7 @@ export async function GET(request: Request) {
   const body = rows.map((r) => ({
     id: r.id,
     enrolledAt: r.enrolledAt.toISOString(),
+    status: r.status,
     grade: r.grade,
     studentId: r.studentId,
     courseId: r.courseId,
@@ -60,8 +63,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Validation failed" }, { status: 400 });
   }
 
-  const { studentId, courseId, enrolledAt: enAt, grade } = parsed.data;
+  const { studentId, courseId, enrolledAt: enAt, grade, status } = parsed.data;
   const enrolledAtDate = enAt ? new Date(enAt) : new Date();
+  const statusVal = status ?? "approved";
 
   const [studentOK, courseOK] = await Promise.all([
     prisma.student.findUnique({ where: { id: studentId } }),
@@ -85,11 +89,13 @@ export async function POST(request: Request) {
       studentId,
       courseId,
       enrolledAt: enrolledAtDate,
+      status: statusVal,
       grade: grade ?? null,
     },
     select: {
       id: true,
       enrolledAt: true,
+      status: true,
       grade: true,
       studentId: true,
       courseId: true,
@@ -102,6 +108,7 @@ export async function POST(request: Request) {
     {
       id: created.id,
       enrolledAt: created.enrolledAt.toISOString(),
+      status: created.status,
       grade: created.grade,
       studentId: created.studentId,
       courseId: created.courseId,

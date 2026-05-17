@@ -13,6 +13,11 @@ function localInputToISO(value: string) {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
+function coalesceEnrollmentStatus(s: string): "approved" | "pending" | "rejected" {
+  if (s === "approved" || s === "pending" || s === "rejected") return s;
+  return "approved";
+}
+
 export default function EnrollmentsPage() {
   const [rows, setRows] = useState<EnrollmentItem[]>([]);
   const [students, setStudents] = useState<PersonItem[]>([]);
@@ -23,10 +28,12 @@ export default function EnrollmentsPage() {
   const [courseId, setCourseId] = useState<number | "">("");
   const [enrolledAtLocal, setEnrolledAtLocal] = useState("");
   const [gradeNew, setGradeNew] = useState("");
+  const [statusNew, setStatusNew] = useState<"approved" | "pending" | "rejected">("approved");
 
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState<EnrollmentItem | null>(null);
   const [editGrade, setEditGrade] = useState("");
+  const [editStatus, setEditStatus] = useState<"approved" | "pending" | "rejected">("approved");
   const [editEnrolledLocal, setEditEnrolledLocal] = useState("");
 
   const load = useCallback(async () => {
@@ -63,6 +70,7 @@ export default function EnrollmentsPage() {
       await api.post("/api/enrollments", {
         studentId,
         courseId,
+        status: statusNew,
         ...(iso ? { enrolledAt: iso } : {}),
         ...(gradeNew.trim() !== "" ? { grade: gradeNew.trim() } : {}),
       });
@@ -76,6 +84,7 @@ export default function EnrollmentsPage() {
   function openEdit(r: EnrollmentItem) {
     setEditRow(r);
     setEditGrade(r.grade ?? "");
+    setEditStatus(coalesceEnrollmentStatus(r.status));
     const d = new Date(r.enrolledAt);
     const pad = (n: number) => String(n).padStart(2, "0");
     const local =
@@ -93,6 +102,7 @@ export default function EnrollmentsPage() {
       const iso = localInputToISO(editEnrolledLocal);
       await api.patch(`/api/enrollments/${editRow.id}`, {
         grade: editGrade.trim() === "" ? null : editGrade.trim(),
+        status: editStatus,
         ...(iso ? { enrolledAt: iso } : {}),
       });
       setEditOpen(false);
@@ -117,7 +127,10 @@ export default function EnrollmentsPage() {
     <div>
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-white">Enrollments</h1>
-        <p className="text-sm text-zinc-400">Many-to-many link between students and courses with optional grade.</p>
+        <p className="text-sm text-zinc-400">
+          Links students and courses with optional grade. New requests from students start as{" "}
+          <span className="text-zinc-300">pending</span> until an admin or instructor approves.
+        </p>
       </header>
 
       <form
@@ -161,6 +174,18 @@ export default function EnrollmentsPage() {
             onChange={(e) => setEnrolledAtLocal(e.target.value)}
           />
         </div>
+        <div className="flex min-w-[120px] flex-col gap-1">
+          <label className="text-xs text-zinc-500">Status</label>
+          <select
+            className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+            value={statusNew}
+            onChange={(e) => setStatusNew(e.target.value as typeof statusNew)}
+          >
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
         <div className="flex w-24 flex-col gap-1">
           <label className="text-xs text-zinc-500">Grade</label>
           <input
@@ -191,6 +216,7 @@ export default function EnrollmentsPage() {
               <th className="px-4 py-3">Student</th>
               <th className="px-4 py-3">Course</th>
               <th className="px-4 py-3">Enrolled</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Grade</th>
               <th className="px-4 py-3 w-40">Actions</th>
             </tr>
@@ -198,7 +224,7 @@ export default function EnrollmentsPage() {
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-zinc-500 text-center">
+                <td colSpan={6} className="px-4 py-6 text-zinc-500 text-center">
                   No enrollments yet.
                 </td>
               </tr>
@@ -210,6 +236,7 @@ export default function EnrollmentsPage() {
                 <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
                   {new Date(r.enrolledAt).toLocaleString()}
                 </td>
+                <td className="px-4 py-3 text-xs capitalize text-zinc-300">{r.status}</td>
                 <td className="px-4 py-3 text-zinc-300">{r.grade ?? "—"}</td>
                 <td className="px-4 py-3 flex flex-wrap gap-2">
                   <button
@@ -250,6 +277,18 @@ export default function EnrollmentsPage() {
                   onChange={(e) => setEditEnrolledLocal(e.target.value)}
                   required
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-zinc-500">Status</label>
+                <select
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as typeof editStatus)}
+                >
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                  <option value="rejected">Rejected</option>
+                </select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-zinc-500">Grade (blank = none)</label>

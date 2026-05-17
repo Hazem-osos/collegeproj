@@ -9,9 +9,20 @@ type Row = {
   courseTitle: string;
   credits: number;
   instructorFullName: string;
+  status: string;
   grade: string | null;
   enrolledAt: string;
 };
+
+function statusBadge(status: string) {
+  const base = "rounded px-2 py-0.5 text-xs font-medium ";
+  if (status === "approved") return <span className={base + "bg-emerald-900/60 text-emerald-300"}>Approved</span>;
+  if (status === "pending")
+    return <span className={base + "bg-amber-900/60 text-amber-200"}>Awaiting approval</span>;
+  if (status === "rejected")
+    return <span className={base + "bg-red-950/70 text-red-300"}>Declined</span>;
+  return <span className={base + "bg-zinc-800 text-zinc-400"}>{status}</span>;
+}
 
 export default function MyCoursesPage() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -37,7 +48,7 @@ export default function MyCoursesPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-white">My courses</h1>
         <p className="text-sm text-zinc-400">
-          Courses you are enrolled in, with instructor (professor) name. Admins enroll you via the roster.
+          Courses you requested or were added to by an admin. You can earn grades only after approval.
         </p>
       </header>
 
@@ -54,15 +65,17 @@ export default function MyCoursesPage() {
               <th className="px-4 py-3">Course</th>
               <th className="px-4 py-3">Instructor</th>
               <th className="px-4 py-3">Credits</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Grade</th>
-              <th className="px-4 py-3">Enrolled</th>
+              <th className="px-4 py-3">Requested / enrolled</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
-                  No enrollments yet. Contact your administrator once you appear on the roster.
+                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                  No enrollment activity yet. Use{" "}
+                  <span className="text-zinc-400">Browse & enroll</span> to request courses.
                 </td>
               </tr>
             )}
@@ -71,6 +84,7 @@ export default function MyCoursesPage() {
                 <td className="px-4 py-3 font-medium text-zinc-100">{r.courseTitle}</td>
                 <td className="px-4 py-3 text-zinc-300">{r.instructorFullName}</td>
                 <td className="px-4 py-3 tabular-nums text-zinc-400">{r.credits}</td>
+                <td className="px-4 py-3">{statusBadge(r.status)}</td>
                 <td className="px-4 py-3 text-zinc-300">{r.grade ?? "—"}</td>
                 <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">
                   {new Date(r.enrolledAt).toLocaleString()}

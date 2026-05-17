@@ -14,6 +14,7 @@ public class EnrollmentService : IEnrollmentService
     {
         Id = e.Id,
         EnrolledAt = e.EnrolledAt.ToUniversalTime().ToString("o"),
+        Status = string.IsNullOrEmpty(e.Status) ? "approved" : e.Status,
         Grade = e.Grade,
         StudentId = e.StudentId,
         CourseId = e.CourseId,
@@ -61,6 +62,7 @@ public class EnrollmentService : IEnrollmentService
             CourseId = dto.CourseId,
             EnrolledAt = NormalizeEnrolledAt(dto.EnrolledAt),
             Grade = dto.Grade,
+            Status = NormalizeStatusOrDefault(dto.Status),
         };
         _context.Enrollments.Add(entity);
         await _context.SaveChangesAsync();
@@ -75,8 +77,9 @@ public class EnrollmentService : IEnrollmentService
     {
         var gradePresent = body.TryGetProperty("grade", out var gradeProp);
         var enrolledPresent = body.TryGetProperty("enrolledAt", out var enrolledProp);
+        var statusPresent = body.TryGetProperty("status", out var statusProp);
 
-        if (!gradePresent && !enrolledPresent)
+        if (!gradePresent && !enrolledPresent && !statusPresent)
             throw new ArgumentException("Validation failed");
 
         var entity = await _context.Enrollments
@@ -115,6 +118,17 @@ public class EnrollmentService : IEnrollmentService
                 : dt.ToUniversalTime();
         }
 
+        if (statusPresent)
+        {
+            if (statusProp.ValueKind == JsonValueKind.Null)
+                throw new ArgumentException("Validation failed");
+            if (statusProp.ValueKind != JsonValueKind.String)
+                throw new ArgumentException("Validation failed");
+            entity.Status = ParseStatusStrict(statusProp.GetString());
+            if (entity.Status == "rejected")
+                entity.Grade = null;
+        }
+
         await _context.SaveChangesAsync();
         return MapDto(entity);
     }
@@ -126,6 +140,22 @@ public class EnrollmentService : IEnrollmentService
         _context.Enrollments.Remove(entity);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    private static string NormalizeStatusOrDefault(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "approved";
+        return ParseStatusStrict(s);
+    }
+
+    private static string ParseStatusStrict(string? raw)
+    {
+        var t = (raw ?? "").Trim().ToLowerInvariant();
+        return t switch
+        {
+            "pending" or "approved" or "rejected" => t,
+            _ => throw new ArgumentException("Validation failed"),
+        };
     }
 
     private static DateTime NormalizeEnrolledAt(DateTime? enrolledAt)

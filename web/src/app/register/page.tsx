@@ -67,8 +67,8 @@ export default function RegisterPage() {
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Course Management</p>
           <h1 className="text-2xl font-semibold text-white">Student registration</h1>
           <p className="text-sm text-zinc-400">
-            Your account creates a roster student profile. Faculty enroll you into courses — you&apos;ll see them
-            under My courses with instructor names. Password at least 8 characters.
+            Your account creates a roster student profile. Browse open courses to request a seat; your instructor or an
+            admin must approve it before it shows as approved under My courses. Password at least 8 characters.
           </p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">

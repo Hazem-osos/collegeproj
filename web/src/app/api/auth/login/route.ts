@@ -33,15 +33,18 @@ export async function POST(request: Request) {
   let role: string;
   let ok = false;
   let studentId: number | null | undefined;
+  let instructorId: number | null | undefined;
 
   if (user) {
     ok = await bcrypt.compare(password, user.passwordHash);
     role = user.role;
     studentId = user.studentId;
+    instructorId = user.instructorId;
   } else if (normalized === "admin@uni.com" && password === "password123") {
     ok = true;
     role = "Admin";
     studentId = undefined;
+    instructorId = undefined;
   } else {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
@@ -50,11 +53,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  const jwt = await signToken({
+  const tokenBody: Parameters<typeof signToken>[0] = {
     email: normalized,
     role,
     ...(role === "Student" && studentId != null ? { studentId } : {}),
-  });
+    ...(role === "Instructor" && instructorId != null ? { instructorId } : {}),
+  };
+  const jwt = await signToken(tokenBody);
+
   let fullName: string | null = null;
   if (studentId != null) {
     const s = await prisma.student.findUnique({
@@ -62,6 +68,12 @@ export async function POST(request: Request) {
       select: { fullName: true },
     });
     fullName = s?.fullName ?? null;
+  } else if (instructorId != null) {
+    const i = await prisma.instructor.findUnique({
+      where: { id: instructorId },
+      select: { fullName: true },
+    });
+    fullName = i?.fullName ?? null;
   }
 
   const res = NextResponse.json({
@@ -69,6 +81,7 @@ export async function POST(request: Request) {
       email: normalized,
       role,
       studentId: studentId ?? null,
+      instructorId: instructorId ?? null,
       fullName,
     },
   });

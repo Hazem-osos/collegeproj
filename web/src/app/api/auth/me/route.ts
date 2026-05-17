@@ -12,7 +12,9 @@ export async function GET(request: Request) {
       email: true,
       role: true,
       studentId: true,
+      instructorId: true,
       student: { select: { fullName: true } },
+      instructor: { select: { fullName: true } },
     },
   });
 
@@ -22,17 +24,22 @@ export async function GET(request: Request) {
         email: auth.user.email,
         role: auth.user.role,
         studentId: auth.user.studentId ?? null,
+        instructorId: auth.user.instructorId ?? null,
         fullName: null as string | null,
       },
     });
   }
+
+  const fullName =
+    row.student?.fullName ?? row.instructor?.fullName ?? null;
 
   return NextResponse.json({
     user: {
       email: row.email,
       role: row.role,
       studentId: row.studentId,
-      fullName: row.student?.fullName ?? null,
+      instructorId: row.instructorId,
+      fullName,
     },
   });
 }

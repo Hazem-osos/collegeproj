@@ -33,7 +33,7 @@ export default function DashboardPage() {
         courses: courses.data.length,
         instructors: instructors.data.length,
         students: students.data.length,
-        enrollments: enrollments.data.length,
+        enrollments: enrollments.data.filter((e) => e.status === "approved").length,
         profiles: profiles.data.length,
       });
     } catch (e) {
@@ -67,7 +67,7 @@ export default function DashboardPage() {
               ["Instructors", stats.instructors, "/instructors"],
               ["Profiles", stats.profiles, "/instructor-profiles"],
               ["Students", stats.students, "/students"],
-              ["Enrollments", stats.enrollments, "/enrollments"],
+              ["Approved enrollments", stats.enrollments, "/enrollments"],
             ] as const
           ).map(([label, n, href]) => (
             <li key={label}>

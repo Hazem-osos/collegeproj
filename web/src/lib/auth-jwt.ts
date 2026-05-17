@@ -12,6 +12,8 @@ export type AuthPayload = {
   role: string;
   /** Present for logged-in roster students (registration links Users → Students). */
   studentId?: number;
+  /** Present for instructor accounts (links Users → Instructors). */
+  instructorId?: number;
 };
 
 /** Claims written into the JWT (subset serializable). */
@@ -23,6 +25,7 @@ export async function signToken(payload: JwtSignPayload): Promise<string> {
     role: payload.role,
   };
   if (payload.studentId != null) body.studentId = payload.studentId;
+  if (payload.instructorId != null) body.instructorId = payload.instructorId;
   return new SignJWT(body)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -37,11 +40,14 @@ export async function verifyToken(token: string): Promise<AuthPayload> {
     issuer: process.env.JWT_ISSUER,
     audience: process.env.JWT_AUDIENCE,
   });
-  const p = payload as JWTPayload & { email?: string; role?: string; studentId?: number };
+  const p = payload as JWTPayload & { email?: string; role?: string; studentId?: number; instructorId?: number };
   if (!p.email || !p.role) throw new Error("Invalid token");
   const out: AuthPayload = { email: p.email, role: p.role };
   if (typeof p.studentId === "number" && Number.isInteger(p.studentId)) {
     out.studentId = p.studentId;
+  }
+  if (typeof p.instructorId === "number" && Number.isInteger(p.instructorId)) {
+    out.instructorId = p.instructorId;
   }
   return out;
 }

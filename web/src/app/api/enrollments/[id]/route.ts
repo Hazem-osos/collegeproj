@@ -8,6 +8,7 @@ type Ctx = { params: Promise<{ id: string }> };
 const patchSchema = z.object({
   grade: z.string().max(10).nullable().optional(),
   enrolledAt: z.string().datetime().optional(),
+  status: z.enum(["pending", "approved", "rejected"]).optional(),
 });
 
 async function enrollmentJson(id: number) {
@@ -16,6 +17,7 @@ async function enrollmentJson(id: number) {
     select: {
       id: true,
       enrolledAt: true,
+      status: true,
       grade: true,
       studentId: true,
       courseId: true,
@@ -27,6 +29,7 @@ async function enrollmentJson(id: number) {
   return {
     id: row.id,
     enrolledAt: row.enrolledAt.toISOString(),
+    status: row.status,
     grade: row.grade,
     studentId: row.studentId,
     courseId: row.courseId,
@@ -74,12 +77,26 @@ export async function PATCH(request: Request, context: Ctx) {
     return NextResponse.json({ error: "Validation failed" }, { status: 400 });
   }
 
+  if (
+    parsed.data.grade === undefined &&
+    parsed.data.enrolledAt === undefined &&
+    parsed.data.status === undefined
+  ) {
+    return NextResponse.json({ error: "Validation failed" }, { status: 400 });
+  }
+
   const existing = await prisma.enrollment.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const data: { grade?: string | null; enrolledAt?: Date } = {};
+  const data: { grade?: string | null; enrolledAt?: Date; status?: string } = {};
   if (parsed.data.grade !== undefined) data.grade = parsed.data.grade;
   if (parsed.data.enrolledAt !== undefined) data.enrolledAt = new Date(parsed.data.enrolledAt);
+  if (parsed.data.status !== undefined) {
+    data.status = parsed.data.status;
+    if (parsed.data.status === "rejected") {
+      data.grade = null;
+    }
+  }
 
   await prisma.enrollment.update({ where: { id }, data });
 

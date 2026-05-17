@@ -4,6 +4,7 @@ import {
   isAdminOnlyPagePath,
   postLoginRedirectPath,
   studentDefaultPath,
+  instructorDefaultPath,
 } from "@/lib/auth-redirects";
 import { SESSION_COOKIE_NAME } from "@/lib/session-cookie";
 
@@ -67,10 +68,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(studentDefaultPath(), request.url));
   }
 
+  if (payload.role === "Instructor" && isAdminOnlyPagePath(pathname)) {
+    return NextResponse.redirect(new URL(instructorDefaultPath(), request.url));
+  }
+
   if (payload.role === "Admin") {
     if (pathname === "/my-courses" || pathname.startsWith("/my-courses/")) {
       return NextResponse.redirect(new URL("/", request.url));
     }
+    if (pathname === "/teaching" || pathname.startsWith("/teaching/")) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  if (payload.role === "Student" && (pathname === "/teaching" || pathname.startsWith("/teaching/"))) {
+    return NextResponse.redirect(new URL(studentDefaultPath(), request.url));
+  }
+
+  if (
+    payload.role === "Instructor" &&
+    (pathname === "/my-courses" || pathname.startsWith("/my-courses/"))
+  ) {
+    return NextResponse.redirect(new URL(instructorDefaultPath(), request.url));
   }
 
   return NextResponse.next();

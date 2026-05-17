@@ -27,9 +27,16 @@ export function AuthedLayout({ children }: { children: React.ReactNode }) {
     }
   }, [isReady, user, router]);
 
+  useEffect(() => {
+    if (isReady && user?.role === "Instructor") {
+      router.replace("/teaching");
+    }
+  }, [isReady, user, router]);
+
   if (!isReady) return <Loading />;
   if (!user) return null;
   if (user.role === "Student") return null;
+  if (user.role === "Instructor") return null;
 
   return <AppShell>{children}</AppShell>;
 }

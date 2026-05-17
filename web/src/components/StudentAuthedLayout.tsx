@@ -25,9 +25,14 @@ export function StudentAuthedLayout({ children }: { children: React.ReactNode })
     if (isReady && user?.role === "Admin") router.replace("/");
   }, [isReady, user, router]);
 
+  useEffect(() => {
+    if (isReady && user?.role === "Instructor") router.replace("/teaching");
+  }, [isReady, user, router]);
+
   if (!isReady) return <Loading />;
   if (!user) return null;
   if (user.role === "Admin") return null;
+  if (user.role === "Instructor") return null;
 
   return <StudentShell>{children}</StudentShell>;
 }

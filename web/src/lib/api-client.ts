@@ -5,11 +5,12 @@ export type CourseItem = {
   instructorName: string;
 };
 
-export type PersonItem = { id: number; fullName: string; email: string };
+export type PersonItem = { id: number; fullName: string; email: string; hasLogin?: boolean };
 
 export type EnrollmentItem = {
   id: number;
   enrolledAt: string;
+  status: string;
   grade: string | null;
   studentId: number;
   courseId: number;

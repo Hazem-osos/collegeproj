@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 [Table("Users")]
-public class User
+public class User 
 {
     public int Id { get; set; }
 
@@ -17,4 +17,7 @@ public class User
 
     public int? StudentId { get; set; }
     public Student? Student { get; set; }
+
+    public int? InstructorId { get; set; }
+    public Instructor? Instructor { get; set; }
 }

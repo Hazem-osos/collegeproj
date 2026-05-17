@@ -77,7 +77,7 @@ export default function StudentsPage() {
     <div>
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-white">Students</h1>
-        <p className="text-sm text-zinc-400">Students join courses via enrollments.</p>
+        <p className="text-sm text-zinc-400">Students join courses via enrollments (requests may require approval).</p>
       </header>
 
       <form

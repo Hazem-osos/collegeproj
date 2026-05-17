@@ -15,6 +15,13 @@ export default function InstructorsPage() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
 
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountInstId, setAccountInstId] = useState<number | null>(null);
+  const [accEmail, setAccEmail] = useState("");
+  const [accPassword, setAccPassword] = useState("");
+  const [accountMsg, setAccountMsg] = useState<string | null>(null);
+  const [accountBusy, setAccountBusy] = useState(false);
+
   const load = useCallback(async () => {
     setErr(null);
     try {
@@ -47,6 +54,33 @@ export default function InstructorsPage() {
     setEditName(r.fullName);
     setEditEmail(r.email);
     setEditOpen(true);
+  }
+
+  function openAccount(r: PersonItem) {
+    setAccountInstId(r.id);
+    setAccEmail(r.email ?? "");
+    setAccPassword("");
+    setAccountMsg(null);
+    setAccountOpen(true);
+  }
+
+  async function onSaveAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (accountInstId == null) return;
+    setAccountMsg(null);
+    setAccountBusy(true);
+    try {
+      await api.post(`/api/instructors/${accountInstId}/account`, {
+        email: accEmail.trim(),
+        password: accPassword,
+      });
+      setAccountOpen(false);
+      await load();
+    } catch (e) {
+      setAccountMsg(getAxiosErrorMessage(e));
+    } finally {
+      setAccountBusy(false);
+    }
   }
 
   async function onSaveEdit(e: React.FormEvent) {
@@ -130,13 +164,14 @@ export default function InstructorsPage() {
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3 w-40">Actions</th>
+              <th className="px-4 py-3 text-center">Portal</th>
+              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-zinc-500 text-center">
+                <td colSpan={4} className="px-4 py-6 text-zinc-500 text-center">
                   No instructors yet.
                 </td>
               </tr>
@@ -145,7 +180,21 @@ export default function InstructorsPage() {
               <tr key={r.id} className="border-b border-zinc-800/60 hover:bg-zinc-900/30">
                 <td className="px-4 py-3 text-zinc-100 font-medium">{r.fullName}</td>
                 <td className="px-4 py-3 text-zinc-300">{r.email}</td>
-                <td className="px-4 py-3 flex flex-wrap gap-2">
+                <td className="px-4 py-3 text-center align-middle">
+                  {r.hasLogin ? (
+                    <span className="text-xs font-medium text-emerald-400/90">Signed up</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-indigo-400 hover:text-indigo-300 underline-offset-2 hover:underline"
+                      onClick={() => openAccount(r)}
+                    >
+                      Create login
+                    </button>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => openEdit(r)}
@@ -160,12 +209,70 @@ export default function InstructorsPage() {
                   >
                     Delete
                   </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {accountOpen && accountInstId !== null && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4" role="dialog">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-white">Instructor portal login</h2>
+            <p className="mt-2 text-xs text-zinc-500">
+              Creates a <span className="text-zinc-400">Course Management</span> account linked to this instructor.
+              Password must be at least 8 characters.
+            </p>
+            <form className="mt-4 space-y-3" onSubmit={(e) => void onSaveAccount(e)}>
+              <div className="space-y-1">
+                <label className="text-xs text-zinc-500">Login email</label>
+                <input
+                  type="email"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+                  value={accEmail}
+                  onChange={(e) => setAccEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-zinc-500">Temporary password</label>
+                <input
+                  type="password"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+                  value={accPassword}
+                  onChange={(e) => setAccPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </div>
+              {accountMsg && (
+                <p className="text-sm text-red-400" role="alert">
+                  {accountMsg}
+                </p>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  className="rounded-lg border border-zinc-700 px-3 py-2 text-sm"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={accountBusy}
+                  className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  Create account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {editOpen && editId !== null && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4" role="dialog">

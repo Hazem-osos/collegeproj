@@ -10,12 +10,14 @@ datasource db {
 
 /// Application login users (JWT session cookie issued on login/register).
 model User {
-  id           Int      @id @default(autoincrement()) @map("Id")
-  email        String   @unique @map("Email") @db.VarChar(255)
-  passwordHash String   @map("PasswordHash") @db.VarChar(255)
-  role         String   @default("Student") @map("Role") @db.VarChar(32)
-  studentId    Int?     @unique @map("StudentId")
-  student      Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  id            Int          @id @default(autoincrement()) @map("Id")
+  email         String       @unique @map("Email") @db.VarChar(255)
+  passwordHash  String       @map("PasswordHash") @db.VarChar(255)
+  role          String       @default("Student") @map("Role") @db.VarChar(32)
+  studentId     Int?         @unique @map("StudentId")
+  student       Student?     @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  instructorId  Int?         @unique @map("InstructorId")
+  instructor    Instructor? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
 
   @@map("Users")
 }
@@ -26,6 +28,7 @@ model Instructor {
   email     String  @map("Email") @db.VarChar(255)
   profile   InstructorProfile?
   courses   Course[]
+  user      User?
 
   @@map("Instructors")
 }
@@ -68,6 +71,8 @@ model Student {
 model Enrollment {
   id         Int      @id @default(autoincrement()) @map("Id")
   enrolledAt DateTime @map("EnrolledAt")
+  /// pending = student requested; approved = active enrollment; rejected = declined (student may re-request).
+  status     String   @default("approved") @map("Status") @db.VarChar(32)
   grade      String?  @map("Grade") @db.VarChar(10)
   studentId  Int      @map("StudentId")
   courseId   Int      @map("CourseId")

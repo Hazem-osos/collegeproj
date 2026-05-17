@@ -2,13 +2,15 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 const dotnetApiUrl = (process.env.NEXT_PUBLIC_DOTNET_API_URL ?? "").replace(/\/$/, "");
 
-/** Routes that must stay on the Next server (Prisma, cookies, student self-service). */
+/** Routes that stay on Next.js (Prisma) when `NEXT_PUBLIC_DOTNET_API_URL` is set. */
 function isNextOriginApiPath(path: string): boolean {
   const p = path.split("?")[0] ?? "";
   return (
     p === "/api/auth/me" ||
     p.startsWith("/api/auth/register") ||
-    p.startsWith("/api/me/") ||
+    p.startsWith("/api/catalog/") ||
+    p.startsWith("/api/teaching/") ||
+    /^\/api\/instructors\/\d+\/account$/.test(p) ||
     p.startsWith("/api/auth/password") ||
     p.startsWith("/api/auth/bootstrap-session") ||
     p.startsWith("/api/auth/logout")

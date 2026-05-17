@@ -6,7 +6,7 @@ import { api, getAxiosErrorMessage } from "@/lib/axios-instance";
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
-  const isStudent = user?.role === "Student";
+  const showDisplayName = user?.role === "Student" || user?.role === "Instructor";
 
   const [fullName, setFullName] = useState("");
   const [currentPw, setCurrentPw] = useState("");
@@ -62,11 +62,12 @@ export default function SettingsPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-white">Settings</h1>
         <p className="text-sm text-zinc-400">
-          Update your password{isStudent ? " and how your name appears on the roster." : "."}
+          Update your password
+          {showDisplayName ? " and how your name appears on the roster or in course listings." : "."}
         </p>
       </header>
 
-      {isStudent && (
+      {showDisplayName && (
         <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
           <h2 className="text-sm font-medium text-white">Profile</h2>
           <form className="space-y-4 max-w-md" onSubmit={onProfile}>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { AppShell } from "@/components/AppShell";
 import { StudentShell } from "@/components/StudentShell";
+import { InstructorShell } from "@/components/InstructorShell";
 
 function Loading() {
   return (
@@ -27,6 +28,10 @@ export default function SettingsLayoutRoot({ children }: { children: React.React
 
   if (user.role === "Admin") {
     return <AppShell>{children}</AppShell>;
+  }
+
+  if (user.role === "Instructor") {
+    return <InstructorShell>{children}</InstructorShell>;
   }
 
   return <StudentShell>{children}</StudentShell>;
